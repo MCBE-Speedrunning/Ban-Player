@@ -22,9 +22,9 @@ for run in r["data"]:
 			headers={
 				"X-API-Key": KEY,
 				"Accept": "application/json",
-				"User-Agent": "mcbeDiscordBot/1.0",
+				"User-Agent": "player-banner/1.0",
 			},
 			data=json.dumps(REJECT),
 		)
 		if r.status_code not in (200, 204):
-			print(f"```json\n{json.dumps(json.loads(r.text),indent=4)}```")
+			print(json.dumps(json.loads(r.text), indent=4))
