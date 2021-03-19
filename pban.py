@@ -41,6 +41,9 @@ Exit status:
 
 
 def usage() -> None:
+	"""
+	Print program usage to stderr and exit.
+	"""
 	print(
 		f"Usage: {PROG} [USER] [GAMES]...\n"
 		+ f"Try '{PROG} --help' for more information.",
@@ -64,6 +67,10 @@ def getopt(AC: int) -> None:
 
 
 def apikey() -> str:
+	"""
+	Get the users speedrun.com API key from the configuration file. If it
+	does not exist then prompt the user for a valid API key.
+	"""
 	try:
 		with open(CONFIG, "r") as f:
 			return f.read().strip()
@@ -79,6 +86,7 @@ def apikey() -> str:
 def getuid(NAME: str) -> Union[str, None]:
 	"""
 	Get a users user ID from their username. Returns None on error.
+
 	>>> getuid("1")
 	'zx7gd1yx'
 	>>> getuid("AnInternetTroll")
@@ -95,6 +103,7 @@ def getuid(NAME: str) -> Union[str, None]:
 def getgid(ABRV: str) -> Union[str, None]:
 	"""
 	Get a games game ID from its abbreviation. Returns None on error.
+
 	>>> getgid("mkw")
 	'l3dxogdy'
 	>>> getgid("celestep8")
@@ -109,6 +118,10 @@ def getgid(ABRV: str) -> Union[str, None]:
 
 
 def reject(APIKEY: str, UID: str, GID: str) -> None:
+	"""
+	Reject all runs by user with the id UID from the game with id GID using
+	the API key specified by APIKEY. Print any errors to stderr.
+	"""
 	for offset in count(0, 200):
 		r: dict = requests.get(
 			f"{API}/runs?user={UID}&game={GID}&max=200&offset={offset}"
