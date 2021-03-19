@@ -42,7 +42,8 @@ Exit status:
 
 def usage() -> None:
 	print(
-		f"Usage: {PROG} [USER] [GAMES]...\n" + f"Try '{PROG} --help' for more information.",
+		f"Usage: {PROG} [USER] [GAMES]...\n"
+		+ f"Try '{PROG} --help' for more information.",
 		file=stderr,
 	)
 	exit(1)
@@ -112,6 +113,9 @@ def reject(APIKEY: str, UID: str, GID: str) -> None:
 		r: dict = requests.get(
 			f"{API}/runs?user={UID}&game={GID}&max=200&offset={offset}"
 		).json()
+		if not r["data"]:
+			return
+
 		for run in r["data"]:
 			rid: str = run["weblink"].split("/")[-1]
 			r = requests.put(
