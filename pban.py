@@ -159,7 +159,7 @@ def main() -> int:
 	APIKEY: str = apikey()
 
 	for i in range(2, AC):
-		gid: str = getgid(argv[1])
+		gid: str = getgid(argv[i])
 		if not gid:
 			print(
 				f"{PROG}: game with abbreviation '{argv[i]}' not found",
