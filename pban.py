@@ -42,8 +42,7 @@ Exit status:
 
 def usage() -> None:
 	print(
-		f"Usage: {PROG} [USER] [GAMES]...\n"
-		+ f"Try '{PROG} --help' for more information.",
+		f"Usage: {PROG} [USER] [GAMES]...\n" + f"Try '{PROG} --help' for more information.",
 		file=stderr,
 	)
 	exit(1)
@@ -125,7 +124,7 @@ def reject(APIKEY: str, UID: str, GID: str) -> None:
 				data=json.dumps(REJECT),
 			)
 			if r.status_code not in (200, 204):
-				print(json.dumps(json.loads(r.text), indent=4))
+				print(json.dumps(json.loads(r.text), indent=4), file=stderr)
 
 
 def main() -> int:
