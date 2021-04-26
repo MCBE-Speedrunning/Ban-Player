@@ -3,22 +3,21 @@
 import json
 from itertools import count
 from os import makedirs, path
-from os.path import basename, expanduser
 from sys import argv, exit, stderr
-from typing import Union
+from typing import Optional, Literal, NoReturn
 
 import requests
 
-PROG: str = basename(__file__)
+PROG: Literal[str] = path.basename(__file__)
+VERSION: Literal[str] = f"{PROG} 1.1.1"
 
-API: str = "https://www.speedrun.com/api/v1"
-CONFIG: str = f"{expanduser('~')}/.config/{PROG}/{PROG}rc"
-REJECT: dict[str, dict[str, str]] = {
+API: Literal[str] = "https://www.speedrun.com/api/v1"
+CONFIG: Literal[str] = f"{path.expanduser('~')}/.config/{PROG}/{PROG}rc"
+REJECT: Literal[dict[str, dict[str, str]]] = {
 	"status": {"status": "rejected", "reason": "Banned player"}
 }
 
-VERSION: str = f"{PROG} 1.1.0"
-HELP: str = f"""\
+HELP: Literal[str] = f"""\
 Usage: {PROG} [OPTION]... [USER] [GAMES]...
 Ban a USER from a list of GAMES by rejecting all of their existing runs.
 Example: {PROG} AnInternetTroll mcbe mcbece celestep8
@@ -40,7 +39,7 @@ Exit status:
 """
 
 
-def usage() -> None:
+def usage() -> NoReturn:
 	"""
 	Print program usage to stderr and exit.
 	"""
@@ -52,21 +51,21 @@ def usage() -> None:
 	exit(1)
 
 
-def getopt(AC: int) -> None:
+def getopt(argc: int) -> None:
 	"""
 	Extremely rudamentary commandline option parser, because I don't need
 	anything more complex.
 	"""
-	for i in range(1, AC):
-		if argv[i] == "--help" or argv[i] == "-h":
+	for i in range(1, argc):
+		if argv[i] == "--help" or argv[i].startswith("-h"):
 			print(HELP)
 			exit(0)
-		if argv[i] == "--version" or argv[i] == "-v":
+		if argv[i] == "--version" or argv[i].startswith("-v"):
 			print(VERSION)
 			exit(0)
 
 
-def apikey() -> str:
+def get_apikey() -> str:
 	"""
 	Get the users speedrun.com API key from the configuration file. If it
 	does not exist then prompt the user for a valid API key.
@@ -75,15 +74,16 @@ def apikey() -> str:
 		with open(CONFIG, "r") as f:
 			return f.read().strip()
 	except FileNotFoundError:
-		APIKEY: str = input("speedrun.com API key: ")
-		makedirs(path.join(expanduser("~"), ".config", "{PROG}"))
+		apikey = input("speedrun.com API key: ")
+		makedirs(path.dirname(CONFIG))
+
 		with open(CONFIG, "w+") as f:
-			f.write(APIKEY)
+			f.write(apikey)
 
-		return APIKEY
+		return apikey
 
 
-def getuid(NAME: str) -> Union[str, None]:
+def getuid(name: str) -> Optional[str]:
 	"""
 	Get a users user ID from their username. Returns None on error.
 
@@ -93,14 +93,14 @@ def getuid(NAME: str) -> Union[str, None]:
 	'7j477kvj'
 	>>> getuid("Fake Name")
 	"""
-	R: dict = requests.get(f"{API}/users?lookup={NAME}").json()
+	r = requests.get(f"{API}/users", params={"lookup": name}).json()
 	try:
-		return R["data"][0]["id"]
+		return r["data"][0]["id"]
 	except IndexError:
 		return None
 
 
-def getgid(ABRV: str) -> Union[str, None]:
+def getgid(abbreviation: str) -> Optional[str]:
 	"""
 	Get a games game ID from its abbreviation. Returns None on error.
 
@@ -110,68 +110,73 @@ def getgid(ABRV: str) -> Union[str, None]:
 	'4d7e7z67'
 	>>> getgid("Fake Game")
 	"""
-	R: dict = requests.get(f"{API}/games?abbreviation={ABRV}").json()
+	r = requests.get(f"{API}/games", params={"abbreviation": abbreviation}).json()
 	try:
-		return R["data"][0]["id"]
+		return r["data"][0]["id"]
 	except IndexError:
 		return None
 
 
-def reject(APIKEY: str, UID: str, GID: str) -> None:
+def reject(apikey: str, uid: str, gid: str) -> None:
 	"""
 	Reject all runs by user with the id UID from the game with id GID using
 	the API key specified by APIKEY. Print any errors to stderr.
 	"""
 	for offset in count(0, 200):
-		r: dict = requests.get(
-			f"{API}/runs?user={UID}&game={GID}&max=200&offset={offset}"
+		r = requests.get(
+			f"{API}/runs",
+			params={
+				"user": uid,
+				"game": gid,
+				"max": SRC_MAX,
+				"offset": offset
+			}
 		).json()
 		if not r["data"]:
 			return
 
 		for run in r["data"]:
-			rid: str = run["weblink"].split("/")[-1]
+			rid = run["weblink"].split("/")[-1]
 			r = requests.put(
 				f"{API}/runs/{rid}/status",
 				headers={
-					"X-API-Key": APIKEY,
+					"X-API-Key": apikey,
 					"Accept": "application/json",
 					"User-Agent": "player-banner/1.0",
 				},
 				data=json.dumps(REJECT),
 			)
-			if r.status_code not in (200, 204):
+			if not r.ok:
 				print(json.dumps(json.loads(r.text), indent=4), file=stderr)
 
 
 def main() -> int:
-	AC: int = len(argv)
-	getopt(AC)
+	argc = len(argv)
+	getopt(argc)
 
-	if AC < 3:
+	if argc < 3:
 		usage()
 
-	UID: str = getuid(argv[1])
-	if not UID:
+	uid = getuid(argv[1])
+	if not uid:
 		print(f"{PROG}: user with name '{argv[1]}' not found", file=stderr)
 		return 2
 
-	APIKEY: str = apikey()
+	apikey = get_apikey()
 
-	for i in range(2, AC):
-		gid: str = getgid(argv[i])
+	for i in range(2, argc):
+		gid = getgid(argv[i])
 		if not gid:
 			print(
-				f"{PROG}: game with abbreviation '{argv[i]}' not found",
+				f"{PROG}: Game with abbreviation '{argv[i]}' not found.",
 				file=stderr,
 			)
 			return 3
 
-		reject(APIKEY, UID, gid)
+		reject(apikey, uid, gid)
 
 	return 0
 
 
 if __name__ == "__main__":
-	RET: int = main()
-	exit(RET)
+	exit(main())
