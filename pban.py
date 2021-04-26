@@ -10,7 +10,7 @@ from typing import Literal, NoReturn, Optional
 import requests
 
 PROG: Literal[str] = path.basename(__file__)
-VERSION: Literal[str] = f"{PROG} 1.2.0"
+VERSION: Literal[str] = f"{PROG} 1.2.1"
 
 API: Literal[str] = "https://www.speedrun.com/api/v1"
 CONFIG: Literal[str] = f"{path.expanduser('~')}/.config/{PROG}/{PROG}rc"
@@ -141,7 +141,7 @@ def reject(apikey: str, uid: str, gid: str) -> None:
 				headers={
 					"X-API-Key": apikey,
 					"Accept": "application/json",
-					"User-Agent": "player-banner/1.0",
+					"User-Agent": "Hello!",
 				},
 				data=json.dumps(REJECT),
 			)
