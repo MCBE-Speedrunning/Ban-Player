@@ -1,18 +1,28 @@
-PY := python3.9
+INSTALL := /usr/local/bin
+PY      := python3.9
+
+src    := pban.py
 target := pban
 
 all:
 
-.PHONY: clean test install uninstall
+.PHONY: clean format install uninstall test
 clean:
 	rm -rf __pycache__/
 
+format:
+	$(PY) -m isort $(src)
+	$(PY) -m black $(src)
+	@unexpand -t 4 --first-only $(src) >temp
+	@mv temp $(src)
+	@chmod +x $(src)
+
 install:
-	cp $(target).py /usr/bin/pban
-	chmod +x /usr/bin/pban
+	cp $(src) $(INSTALL)/$(target)
+	chmod +x $(INSTALL)/$(target)
 
 uninstall:
-	rm -f /usr/bin/$(target)
+	rm -f $(INSTALL)/$(target)
 
 test:
-	$(PY) -m doctest pban.py
+	$(PY) -m doctest $(src)
