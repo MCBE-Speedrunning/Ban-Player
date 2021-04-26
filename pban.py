@@ -1,23 +1,27 @@
 #!/usr/bin/env python3.9
 
 import json
+from getpass import getpass
 from itertools import count
 from os import makedirs, path
 from sys import argv, exit, stderr
-from typing import Optional, Literal, NoReturn
+from typing import Literal, NoReturn, Optional
 
 import requests
 
 PROG: Literal[str] = path.basename(__file__)
-VERSION: Literal[str] = f"{PROG} 1.1.1"
+VERSION: Literal[str] = f"{PROG} 1.2.0"
 
 API: Literal[str] = "https://www.speedrun.com/api/v1"
 CONFIG: Literal[str] = f"{path.expanduser('~')}/.config/{PROG}/{PROG}rc"
 REJECT: Literal[dict[str, dict[str, str]]] = {
 	"status": {"status": "rejected", "reason": "Banned player"}
 }
+SRC_MAX: Literal[int] = 200
 
-HELP: Literal[str] = f"""\
+HELP: Literal[
+	str
+] = f"""\
 Usage: {PROG} [OPTION]... [USER] [GAMES]...
 Ban a USER from a list of GAMES by rejecting all of their existing runs.
 Example: {PROG} AnInternetTroll mcbe mcbece celestep8
@@ -74,7 +78,7 @@ def get_apikey() -> str:
 		with open(CONFIG, "r") as f:
 			return f.read().strip()
 	except FileNotFoundError:
-		apikey = input("speedrun.com API key: ")
+		apikey = getpass("speedrun.com API key: ")
 		makedirs(path.dirname(CONFIG))
 
 		with open(CONFIG, "w+") as f:
@@ -125,12 +129,7 @@ def reject(apikey: str, uid: str, gid: str) -> None:
 	for offset in count(0, 200):
 		r = requests.get(
 			f"{API}/runs",
-			params={
-				"user": uid,
-				"game": gid,
-				"max": SRC_MAX,
-				"offset": offset
-			}
+			params={"user": uid, "game": gid, "max": SRC_MAX, "offset": offset},
 		).json()
 		if not r["data"]:
 			return
